@@ -83,5 +83,15 @@ npm install dotenv
 * **Santiago Gallo** - [KironStylo](https://github.com/KironStylo)
 * **Erick Garavito** - [ericksgv](https://github.com/ericksgv)
 
+## Tecnologías
+<img align="left" alt="Nodejs" width="76px" src="https://user-images.githubusercontent.com/25181517/183568594-85e280a7-0d7e-4d1a-9028-c8c2209e073c.png" /> 
+<img align="left" alt="JavaScript" width="76px" src="https://raw.githubusercontent.com/jmnote/z-icons/master/svg/javascript.svg" /> 
+
+<br>
+<br>
+<br>
+
+
 ## Licencia 📄
 Este proyecto está bajo la licencia [MIT](./LICENSE).
+
