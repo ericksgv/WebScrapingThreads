@@ -28,6 +28,8 @@ git clone https://github.com/ericksgv/WebScrapingThreads
 ### Instalar las dependencias
 ```
 npm install @threadsjs/threads.js
+```
+```
 npm install dotenv
 ```
 ### Configuración del Archivo .env
