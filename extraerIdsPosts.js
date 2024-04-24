@@ -29,13 +29,20 @@ try {
             (thread.thread_items || []).forEach(thread_item => {
                 // Intentar acceder al ID del post
                 try {
-                    const descripcion = thread_item.post.caption.text;
+                    const post_id = thread_item.post.id.split('_')[0]; // Obtener solo la parte antes del guion bajo
+                    all_ids.push(post_id);
+
+                    let descripcion = ""; // Inicializar la descripción como una cadena vacía
+                    if (thread_item.post.caption !== null) {
+                        descripcion = thread_item.post.caption.text;
+                    }
                     const comentarios = [];
                     const fecha = convertirTimestampALegible(thread_item.post.device_timestamp);
                     const fuente = "Threads";
 
                     // Crear un objeto para la publicación actual
                     const publicacion = {
+                        id: post_id,
                         descripcion: descripcion,
                         comentarios: comentarios,
                         fecha: fecha,
@@ -44,8 +51,7 @@ try {
 
                     // Agregar la publicación al array de publicaciones
                     publicaciones.push(publicacion);
-                    const post_id = thread_item.post.id.split('_')[0]; // Obtener solo la parte antes del guion bajo
-                    all_ids.push(post_id);
+
                 } catch (error) {
                     // Si 'post' o 'id' no existen, continuar con el siguiente elemento
                     return;
@@ -62,15 +68,10 @@ try {
 
     // Convertir el objeto JSON a una cadena
     const jsonStr = JSON.stringify(jsonPublicaciones, null, 2);
-
-    // Mostrar el objeto JSON
-    console.log(jsonStr);
-    
+  
     // Escribir el objeto JSON en un archivo
     fs.writeFileSync('publicaciones.json', jsonStr, { encoding: 'utf-8', flag: 'w' });
 
-    // Escribir todos los IDs de los posts en un archivo txt
-    fs.writeFileSync('idsPosts.txt', all_ids.join('\n'), { encoding: 'utf-8', flag: 'w' });
 } catch (error) {
     console.error(`Error al procesar el archivo: ${error}`);
 }
