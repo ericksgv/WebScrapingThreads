@@ -1,10 +1,16 @@
 const { Client } = require('@threadsjs/threads.js');
 const fs = require('fs');
+const { setTimeout } = require('timers');
 require('dotenv').config();
 
 // Obtener las credenciales del usuario desde el archivo .env
 const usuario = process.env.USUARIO;
 const contrasena = process.env.CONTRASENA;
+
+// Función para generar un valor aleatorio entre min (incluido) y max (excluido)
+function obtenerTiempoAleatorio(min, max) {
+    return Math.floor(Math.random() * (max - min) + min) * 1000; // Convertir a milisegundos
+}
 
 (async () => {
     const cliente = new Client();
@@ -57,6 +63,14 @@ const contrasena = process.env.CONTRASENA;
                     } else {
                         tokenSiguientePagina = null;
                     }
+                    // Genera un tiempo de espera aleatorio entre 10 y 15 segundos
+                    const tiempoDeEspera = obtenerTiempoAleatorio(10, 15);
+
+                    // Luego de la solicitud, establece una pausa utilizando setTimeout para esperar antes de la siguiente solicitud
+                    setTimeout(() => {
+                        // Realiza la siguiente solicitud después de que haya pasado el tiempo de espera aleatorio
+                        hacerSolicitudDespuesDeEsperaAleatoria();
+                    }, tiempoDeEspera);
                 } while (tokenSiguientePagina);
             }
         }

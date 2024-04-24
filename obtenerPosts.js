@@ -32,6 +32,7 @@ function obtenerTiempoAleatorio(min, max) {
 
         // Si hay una próxima página, actualizar el token para la siguiente solicitud
         tokenSiguientePagina = paginaActual.next_max_id;
+
         // Genera un tiempo de espera aleatorio entre 10 y 15 segundos
         const tiempoDeEspera = obtenerTiempoAleatorio(10, 15);
 
