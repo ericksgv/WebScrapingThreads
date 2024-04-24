@@ -13,11 +13,24 @@ const contrasena = process.env.CONTRASENA;
         // Iniciar sesión en el cliente usando las credenciales proporcionadas
         await cliente.login(usuario, contrasena);
 
-        // Leer el archivo que contiene los IDs de los posts
-        const ids = fs.readFileSync('idsPosts.txt', 'utf-8').split('\n');
+        // Leer el contenido del archivo JSON
+        const jsonPublicaciones = fs.readFileSync('publicaciones.json', 'utf-8');
 
+        // Parsear el contenido JSON
+        const publicaciones = JSON.parse(jsonPublicaciones).publicaciones;
+
+        // Crear una lista para almacenar los IDs de las publicaciones
+        let idsPublicaciones = [];
+        
+        // Iterar sobre cada elemento del array de publicaciones
+        publicaciones.forEach(publicacion => {
+            // Obtener el ID de la publicación y agregarlo a la lista de IDs
+            const id = publicacion.id;
+            idsPublicaciones.push(id);
+        });
+    
         // Iterar sobre cada línea del archivo, que contiene un ID de post en cada línea
-        for (let id of ids) {
+        for (let id of idsPublicaciones) {
             // Eliminar espacios en blanco adicionales
             id = id.trim();
             if (id !== '') {
