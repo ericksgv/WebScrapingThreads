@@ -13,6 +13,7 @@ const cliente = new Client();
 
     obtenerPublicacionesThreads();
     generarJSONPublicaciones();
+    obtenerComentariosThreads
 })();
 
 async function iniciarSesion() {
@@ -134,4 +135,57 @@ function generarJSONPublicaciones(){
     } catch (error) {
         console.error(`Error al procesar el archivo: ${error}`);
     }
+}
+
+//Función para obtener desde Threads los comentarios de cada publicación
+function obtenerComentariosThreads() {
+    (async () => {
+        try {
+            const datos = fs.readFileSync(rutaArchivo, 'utf-8');
+            const datosJSON = JSON.parse(datos);
+
+            if (fs.existsSync(rutaArchivoEscritura)) {
+                const fileContent = fs.readFileSync(rutaArchivoEscritura, 'utf-8');
+                const parsedContent = JSON.parse(fileContent);
+                if (parsedContent.comentarios) {
+                    comentarios = parsedContent.comentarios;
+                }
+            }
+
+            const cliente = new Client();
+            await cliente.login(usuario, contrasena);
+
+            const jsonPublicaciones = fs.readFileSync(rutaArchivo, 'utf-8');
+            const publicaciones = JSON.parse(jsonPublicaciones).publicaciones;
+
+            let idsPublicaciones = publicaciones.map(publicacion => publicacion.id.trim()).filter(id => id !== '');
+
+            for (let id of idsPublicaciones) {
+                let todosLosPosts = [];
+                let tokenSiguientePagina = null;
+
+                do {
+                    const paginaActual = await cliente.posts.fetch(id, tokenSiguientePagina);
+                    paginaActual.id = id;
+                    //const postID = paginaActual.containing_thread.thread_items[0].post.id;
+                    const fileName = `PaginaComentariosPost_${tokenSiguientePagina}.json`;
+                    // Escribir los posts de la página actual en un archivo JSON
+                    fs.writeFileSync(fileName, JSON.stringify(paginaActual, null, 2), 'utf-8');
+
+                    if (paginaActual.paging_tokens.downwards) {
+                        tokenSiguientePagina = paginaActual.paging_tokens.downwards;
+                    } else {
+                        tokenSiguientePagina = null;
+                    }
+
+                    const tiempoDeEspera = obtenerTiempoAleatorio(10, 15);
+
+                    await new Promise(resolve => setTimeout(resolve, tiempoDeEspera));
+                } while (tokenSiguientePagina);
+            }
+
+        } catch (error) {
+            console.error('Error fetching threads:', error);
+        }
+    })();
 }
