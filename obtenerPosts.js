@@ -9,13 +9,15 @@ const perfilThreads = process.env.PERFILTHREADS;
 const cliente = new Client();
 
 (async () => {
-    await iniciarSesion(); // Iniciar sesión una vez al principio
-
-    obtenerPublicacionesThreads();
-    generarJSONPublicaciones();
-    obtenerComentariosThreads();
-    generarJSONComentarios();
-    generarJSONPublicacionesYComentarios();
+    try {
+        await iniciarSesion();
+        await obtenerPublicacionesYGenerarJSON(); 
+        await obtenerComentariosThreads(); 
+        await generarJSONComentarios(); 
+        await generarJSONPublicacionesYComentarios(); 
+    } catch (error) {
+        console.error('Error:', error);
+    }
 })();
 
 async function iniciarSesion() {
@@ -27,38 +29,45 @@ function obtenerTiempoAleatorio(min, max) {
     return Math.floor(Math.random() * (max - min) + min) * 1000; // Convertir a milisegundos
 }
 
+//Función para obtener desde Threads las publicaciones de un usuario y generar JSON
+async function obtenerPublicacionesYGenerarJSON() {
+    await obtenerPublicacionesThreads();
+    await generarJSONPublicaciones();
+}
+
 //Función para obtener desde Threads las publicaciones de un usuario
-function obtenerPublicacionesThreads() {
-    (async () => {
+async function obtenerPublicacionesThreads() {
+    let todosLosPosts = []; // Array para almacenar todos los posts
+    let tokenSiguientePagina = null; // Inicialmente no hay un token para la siguiente página
     
-        let todosLosPosts = []; // Array para almacenar todos los posts
-        let tokenSiguientePagina = null; // Inicialmente no hay un token para la siguiente página
-        
-        const obtenerSiguientePagina = async () => {
+    const obtenerSiguientePagina = async () => {
+        try {
             // Obtener la página actual de resultados
             const paginaActual = await cliente.feeds.fetchThreads(perfilThreads, tokenSiguientePagina);
-            console.log("paginaActual:", paginaActual); // Agregar esta línea para ver la respuesta
-    
+            
             // Agregar los posts de la página actual al array todosLosPosts 
             todosLosPosts = todosLosPosts.concat(paginaActual);
-    
+
             // Escribir los posts de la página actual en un archivo JSON
-            fs.writeFileSync('Posts.json', JSON.stringify(todosLosPosts, null, 2), 'utf-8');
-    
+            fs.writeFileSync('Posts.json', JSON.stringify(todosLosPosts, null, 2), { flag: 'w' }); // Usar la opción { flag: 'w' } para sobrescribir el archivo
+
             // Si hay una próxima página, actualizar el token para la siguiente solicitud
             tokenSiguientePagina = paginaActual.next_max_id;
-    
+
             if (tokenSiguientePagina) {
                 // Generar un tiempo de espera aleatorio entre 10 y 15 segundos para la próxima solicitud
                 const tiempoDeEspera = obtenerTiempoAleatorio(10, 15);
                 // Luego de la solicitud, establecer una pausa utilizando setTimeout para esperar antes de la siguiente solicitud
                 setTimeout(obtenerSiguientePagina, tiempoDeEspera);
             }
-        };
-        // Iniciar el proceso obteniendo la primera página
-        await obtenerSiguientePagina();
-    })();
+        } catch (error) {
+            console.error('Error al obtener las publicaciones:', error);
+        }
+    };
+    // Iniciar el proceso obteniendo la primera página
+    await obtenerSiguientePagina();
 }
+
 
 // Función para convertir un timestamp en microsegundos a una fecha legible
 function convertirTimestampALegible(timestamp) {
@@ -71,7 +80,7 @@ function convertirTimestampALegible(timestamp) {
 }
 
 //Función para generar el JSON con el estándar de salida para las publicaciones
-function generarJSONPublicaciones(){
+async function generarJSONPublicaciones(){
     // Crear una lista vacía para almacenar todos los IDs de los posts
     let all_ids = [];
 
@@ -140,63 +149,61 @@ function generarJSONPublicaciones(){
 }
 
 //Función para obtener desde Threads los comentarios de cada publicación
-function obtenerComentariosThreads() {
+async function obtenerComentariosThreads() {
     let comentarios = [];
     const rutaArchivoLectura = 'publicaciones.json';
     const rutaArchivoEscritura = 'comentarios.json';
-    (async () => {
-        try {
-            const datos = fs.readFileSync(rutaArchivoLectura, 'utf-8');
-            const datosJSON = JSON.parse(datos);
+    try {
+        const datos = fs.readFileSync(rutaArchivoLectura, 'utf-8');
+        const datosJSON = JSON.parse(datos);
 
-            if (fs.existsSync(rutaArchivoEscritura)) {
-                const fileContent = fs.readFileSync(rutaArchivoEscritura, 'utf-8');
-                const parsedContent = JSON.parse(fileContent);
-                if (parsedContent.comentarios) {
-                    comentarios = parsedContent.comentarios;
-                }
+        if (fs.existsSync(rutaArchivoEscritura)) {
+            const fileContent = fs.readFileSync(rutaArchivoEscritura, 'utf-8');
+            const parsedContent = JSON.parse(fileContent);
+            if (parsedContent.comentarios) {
+                comentarios = parsedContent.comentarios;
             }
-
-            const cliente = new Client();
-            await cliente.login(usuario, contrasena);
-
-            const jsonPublicaciones = fs.readFileSync(rutaArchivoLectura, 'utf-8');
-            const publicaciones = JSON.parse(jsonPublicaciones).publicaciones;
-
-            let idsPublicaciones = publicaciones.map(publicacion => publicacion.id.trim()).filter(id => id !== '');
-
-            for (let id of idsPublicaciones) {
-                let todosLosPosts = [];
-                let tokenSiguientePagina = null;
-
-                do {
-                    const paginaActual = await cliente.posts.fetch(id, tokenSiguientePagina);
-                    paginaActual.id = id;
-                    //const postID = paginaActual.containing_thread.thread_items[0].post.id;
-                    const fileName = `PaginaComentariosPost_${tokenSiguientePagina}.json`;
-                    // Escribir los posts de la página actual en un archivo JSON
-                    fs.writeFileSync(fileName, JSON.stringify(paginaActual, null, 2), 'utf-8');
-
-                    if (paginaActual.paging_tokens.downwards) {
-                        tokenSiguientePagina = paginaActual.paging_tokens.downwards;
-                    } else {
-                        tokenSiguientePagina = null;
-                    }
-
-                    const tiempoDeEspera = obtenerTiempoAleatorio(10, 15);
-
-                    await new Promise(resolve => setTimeout(resolve, tiempoDeEspera));
-                } while (tokenSiguientePagina);
-            }
-
-        } catch (error) {
-            console.error('Error fetching threads:', error);
         }
-    })();
+
+        const cliente = new Client();
+        await cliente.login(usuario, contrasena);
+
+        const jsonPublicaciones = fs.readFileSync(rutaArchivoLectura, 'utf-8');
+        const publicaciones = JSON.parse(jsonPublicaciones).publicaciones;
+
+        let idsPublicaciones = publicaciones.map(publicacion => publicacion.id.trim()).filter(id => id !== '');
+
+        for (let id of idsPublicaciones) {
+            let todosLosPosts = [];
+            let tokenSiguientePagina = null;
+
+            do {
+                const paginaActual = await cliente.posts.fetch(id, tokenSiguientePagina);
+                paginaActual.id = id;
+                //const postID = paginaActual.containing_thread.thread_items[0].post.id;
+                const fileName = `PaginaComentariosPost_${tokenSiguientePagina}.json`;
+                // Escribir los posts de la página actual en un archivo JSON
+                fs.writeFileSync(fileName, JSON.stringify(paginaActual, null, 2), 'utf-8');
+
+                if (paginaActual.paging_tokens.downwards) {
+                    tokenSiguientePagina = paginaActual.paging_tokens.downwards;
+                } else {
+                    tokenSiguientePagina = null;
+                }
+
+                const tiempoDeEspera = obtenerTiempoAleatorio(10, 15);
+
+                await new Promise(resolve => setTimeout(resolve, tiempoDeEspera));
+            } while (tokenSiguientePagina);
+        }
+
+    } catch (error) {
+        console.error('Error fetching threads:', error);
+    }
 }
 
 // Función para procesar los comentarios extraídos de Threads
-function generarJSONComentarios() {
+async function generarJSONComentarios() {
     // Crear una lista vacía para almacenar todos los textos de los comentarios
     let comentarios = [];
 
@@ -253,7 +260,7 @@ function generarJSONComentarios() {
 }
 
 //Función para generar el archivo JSON con las publicaciones y comentarios con el formato estandar de salida
-function generarJSONPublicacionesYComentarios(){
+async function generarJSONPublicacionesYComentarios(){
     // Leer los archivos JSON
     const publicacionesJSON = fs.readFileSync('publicaciones.json', 'utf-8');
     const comentariosJSON = fs.readFileSync('comentarios.json', 'utf-8');
