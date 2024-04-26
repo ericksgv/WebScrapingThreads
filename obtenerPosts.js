@@ -13,7 +13,8 @@ const cliente = new Client();
 
     obtenerPublicacionesThreads();
     generarJSONPublicaciones();
-    obtenerComentariosThreads
+    obtenerComentariosThreads();
+    generarJSONComentarios();
 })();
 
 async function iniciarSesion() {
@@ -139,9 +140,12 @@ function generarJSONPublicaciones(){
 
 //Función para obtener desde Threads los comentarios de cada publicación
 function obtenerComentariosThreads() {
+    let comentarios = [];
+    const rutaArchivoLectura = 'publicaciones.json';
+    const rutaArchivoEscritura = 'comentarios.json';
     (async () => {
         try {
-            const datos = fs.readFileSync(rutaArchivo, 'utf-8');
+            const datos = fs.readFileSync(rutaArchivoLectura, 'utf-8');
             const datosJSON = JSON.parse(datos);
 
             if (fs.existsSync(rutaArchivoEscritura)) {
@@ -155,7 +159,7 @@ function obtenerComentariosThreads() {
             const cliente = new Client();
             await cliente.login(usuario, contrasena);
 
-            const jsonPublicaciones = fs.readFileSync(rutaArchivo, 'utf-8');
+            const jsonPublicaciones = fs.readFileSync(rutaArchivoLectura, 'utf-8');
             const publicaciones = JSON.parse(jsonPublicaciones).publicaciones;
 
             let idsPublicaciones = publicaciones.map(publicacion => publicacion.id.trim()).filter(id => id !== '');
@@ -188,4 +192,61 @@ function obtenerComentariosThreads() {
             console.error('Error fetching threads:', error);
         }
     })();
+}
+
+// Función para procesar los comentarios extraídos de Threads
+function generarJSONComentarios() {
+    // Crear una lista vacía para almacenar todos los textos de los comentarios
+    let comentarios = [];
+
+    const rutaArchivoEscritura = 'comentarios.json';
+
+    // Verificar si el archivo existe
+    if (fs.existsSync(rutaArchivoEscritura)) {
+        // Eliminar el archivo si ya existe
+        fs.unlinkSync(rutaArchivoEscritura);
+    }
+
+    // Obtener la lista de archivos JSON que contienen "PaginaComentariosPost_" en el nombre
+    const archivosJSON = fs.readdirSync('./').filter(file => file.includes('PaginaComentariosPost_'));
+
+    // Iterar sobre cada archivo JSON
+    archivosJSON.forEach(file => {
+        try {
+            // Leer el contenido del archivo JSON
+            const datos = JSON.parse(fs.readFileSync(file, 'utf-8'));
+
+            if (datos.reply_threads.length > 0) {
+                for (const thread of datos.reply_threads) {
+                    for (const comentario of thread.thread_items) {
+                        comentarios.push({
+                            "id": datos.id,
+                            "usuario": comentario.post.caption.user.username,
+                            "descripcion": comentario.post.caption.text,
+                            "reacciones": comentario.post.like_count,
+                            "fecha": convertirTimestampALegible(comentario.post.device_timestamp)
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`Error al procesar el archivo ${file}: ${error}`);
+        }
+    });
+
+    //Longitud de comentarios
+    console.log("Longitud de comentarios: ", comentarios.length);
+
+    // Escribir todos los comentarios en el archivo JSON
+    const nuevoContenido = JSON.stringify({ comentarios }, null, 2);
+    fs.writeFileSync(rutaArchivoEscritura, nuevoContenido, 'utf-8');
+
+    // Iterar sobre cada archivo y eliminarlo
+    archivosJSON.forEach(file => {
+        try {
+            fs.unlinkSync(file);
+        } catch (error) {
+            console.error(`Error al eliminar el archivo ${file}: ${error}`);
+        }
+    });
 }
