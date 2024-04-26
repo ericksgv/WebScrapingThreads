@@ -15,6 +15,7 @@ const cliente = new Client();
     generarJSONPublicaciones();
     obtenerComentariosThreads();
     generarJSONComentarios();
+    generarJSONPublicacionesYComentarios();
 })();
 
 async function iniciarSesion() {
@@ -249,4 +250,38 @@ function generarJSONComentarios() {
             console.error(`Error al eliminar el archivo ${file}: ${error}`);
         }
     });
+}
+
+//Función para generar el archivo JSON con las publicaciones y comentarios con el formato estandar de salida
+function generarJSONPublicacionesYComentarios(){
+    // Leer los archivos JSON
+    const publicacionesJSON = fs.readFileSync('publicaciones.json', 'utf-8');
+    const comentariosJSON = fs.readFileSync('comentarios.json', 'utf-8');
+
+    // Convertir los JSON en objetos JavaScript
+    const publicaciones = JSON.parse(publicacionesJSON).publicaciones;
+    const comentarios = JSON.parse(comentariosJSON).comentarios;
+
+    // Iterar sobre los comentarios y agruparlos por ID de publicación
+    const comentariosPorPublicacion = comentarios.reduce((acc, comentario) => {
+        if (!acc[comentario.id]) {
+            acc[comentario.id] = [];
+        }
+        // Quitar la propiedad 'id' de cada comentario antes de agregarlo
+        const { id, ...comentarioSinId } = comentario;
+        acc[comentario.id].push(comentarioSinId);
+        return acc;
+    }, {});
+
+    // Agregar los comentarios a las publicaciones correspondientes
+    publicaciones.forEach(publicacion => {
+        const comentariosDePublicacion = comentariosPorPublicacion[publicacion.id];
+        if (comentariosDePublicacion) {
+            publicacion.comentarios = comentariosDePublicacion;
+        }
+    });
+
+    // Escribir el JSON modificado de vuelta al archivo
+    const nuevoContenido = JSON.stringify({ publicaciones }, null, 2);
+    fs.writeFileSync('data.json', nuevoContenido, 'utf-8');
 }
