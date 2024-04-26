@@ -53,30 +53,12 @@ npm install dotenv
      ```
  4. Guarda los cambios realizados en el archivo `.env`.
 ## Uso 📦
-1. Ejecutar [obtenerPosts.js](./obtenerPosts.js).
+1. Ejecutar [extraer.js](./extraer.js).
    
      ```
-     node obtenerPosts.js
+     node extraer.js
      ```
-     El JSON con los posts se almacenarán en el archivo [Posts.json](./Posts.json).
-2. Ejecutar [extraerIdsPosts.js](./extraerIdsPosts.js).
-   
-     ```
-     node extraerIdsPosts.js
-     ```
-     A partir del archivo [Posts.json](./Posts.json) se extraen los IDs de los posts y se almacenan en el archivo [idsPosts.txt](./idsPosts.txt).
-3. Ejecutar [obtenerComentarios.js](./obtenerComentarios.js).
-   
-     ```
-     node obtenerComentarios.js
-     ```
-      A partir del archivo [idsPosts.txt](./idsPosts.txt) se obtienen los IDs de los posts y se extraen los comentarios por cada página de cada post en los archivos `PaginaComentariosPost_{tokenSiguientePagina}.json`.
-4. Ejecutar [extraerComentarios.js](./extraerComentarios.js).
-   
-     ```
-     node extraerComentarios.js
-     ```
-     A partir de los archivos `PaginaComentariosPost_{tokenSiguientePagina}.json` se extrae el texto de los comentarios y se guardan en el archivo [comentarios.txt](./comentarios.txt).
+     El JSON con los posts con el formato stándar de salida se almacenarán en el archivo [data.json](./data.json).
 
 ## Autores ✒️
 * **Santiago Mejía** - [SantiagoMejiaF](https://github.com/SantiagoMejiaF)
