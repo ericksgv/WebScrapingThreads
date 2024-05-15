@@ -23,113 +23,128 @@ async function iniciarSesion() {
 
 //Función para obtener desde Threads las publicaciones de un usuario y generar JSON
 async function obtenerPublicacionesYGenerarJSON() {
-  await obtenerPublicacionesThreads();
-  await generarJSONPublicaciones();
+  generarJSONPublicaciones();
 }
 
 //Función para obtener desde Threads las publicaciones de un usuario
 async function obtenerPublicacionesThreads() {
-  let todosLosPosts = []; // Array para almacenar todos los posts
-  let tokenSiguientePagina = null; // Inicialmente no hay un token para la siguiente página
+  return new Promise((resolve, reject) => {
+    let todosLosPosts = []; // Array para almacenar todos los posts
+    let tokenSiguientePagina = null; // Inicialmente no hay un token para la siguiente página
 
-  const obtenerSiguientePagina = async () => {
-    try {
-      // Obtener la página actual de resultados
-      const paginaActual = await cliente.feeds.fetchThreads(
-        perfilThreads,
-        tokenSiguientePagina
-      );
+    const obtenerSiguientePagina = async () => {
+        try {
+            // Obtener la página actual de resultados
+            const paginaActual = await cliente.feeds.fetchThreads(
+                perfilThreads,
+                tokenSiguientePagina
+            );
 
-      // Agregar los posts de la página actual al array todosLosPosts
-      todosLosPosts = todosLosPosts.concat(paginaActual);
+            // Agregar los posts de la página actual al array todosLosPosts
+            todosLosPosts = todosLosPosts.concat(paginaActual);
 
-      // Escribir los posts de la página actual en un archivo JSON
-      fs.writeFileSync("Posts.json", JSON.stringify(todosLosPosts, null, 2), {
-        flag: "w",
-      }); // Usar la opción { flag: 'w' } para sobrescribir el archivo
+            // Escribir los posts de la página actual en un archivo JSON
+            fs.writeFileSync("Posts.json", JSON.stringify(todosLosPosts, null, 2), {
+                flag: "w",
+            }); // Usar la opción { flag: 'w' } para sobrescribir el archivo
 
-      // Si hay una próxima página, actualizar el token para la siguiente solicitud
-      tokenSiguientePagina = paginaActual.next_max_id;
+            // Si hay una próxima página, actualizar el token para la siguiente solicitud
+            tokenSiguientePagina = paginaActual.next_max_id;
 
-      if (tokenSiguientePagina) {
-        // Generar un tiempo de espera aleatorio entre 10 y 15 segundos para la próxima solicitud
-        const tiempoDeEspera = obtenerTiempoAleatorio(10, 15);
-        // Luego de la solicitud, establecer una pausa utilizando setTimeout para esperar antes de la siguiente solicitud
-        setTimeout(obtenerSiguientePagina, tiempoDeEspera);
-      }
-    } catch (error) {
-      console.error("Error al obtener las publicaciones:", error);
-    }
-  };
-  // Iniciar el proceso obteniendo la primera página
-  await obtenerSiguientePagina();
+            if (tokenSiguientePagina) {
+                // Generar un tiempo de espera aleatorio entre 10 y 15 segundos para la próxima solicitud
+                const tiempoDeEspera = obtenerTiempoAleatorio(10, 15);
+                // Luego de la solicitud, establecer una pausa utilizando setTimeout para esperar antes de la siguiente solicitud
+                setTimeout(obtenerSiguientePagina, tiempoDeEspera);
+            } else {
+                resolve(); // Resuelve la promesa cuando se completan todas las solicitudes
+            }
+        } catch (error) {
+            reject(error); // Rechaza la promesa si hay un error
+        }
+    };
+    obtenerSiguientePagina(); // Comenzar el proceso de obtención de publicaciones
+});
 }
 
 //Función para generar el JSON con el estándar de salida para las publicaciones
 async function generarJSONPublicaciones() {
-  let listaDatos = [];
 
-  fs.readFile("Posts.json", "utf8", (err, data) => {
-    if (err) {
-      console.error("Error al leer el archivo:", err);
-      return;
-    }
-    try {
-      // Parsea el contenido del archivo JSON a un objeto JavaScript
-      const listaThreads = JSON.parse(data);
-      listaThreads.forEach(function (thread, index) {
-        const threadNumber = index + 1;
 
-        const threadItems = thread.threads;
+  try{
+    await obtenerPublicacionesThreads();
+    console.log("Se obtuvieron las publicaciones");
+  
+    let listaDatos = [];
 
-        threadItems.forEach(function (item, itemIndex) {
-          const id = "" + item.thread_items[0].post.id.toString().split("_")[0];
-          const timestamp = item.thread_items[0].post.taken_at;
-          if (
-            item.thread_items[0].post.caption !== null &&
-            item.thread_items[0].post.caption.text !== null
-          ) {
-            description = item.thread_items[0].post.caption.text
-              .toString()
-              .trim()
-              .replace(/\s+/g, " ");
-          } else {
-            description = "Sin descripcion";
-          }
-          const usuario = item.thread_items[0].post.user.full_name;
-          console.log(timestamp);
-
-          const fecha = new Date(timestamp * 1000);
-
-          const dia = fecha.getDate();
-          const mes = fecha.getMonth() + 1;
-          const anio = fecha.getFullYear();
-
-          const datos = {
-            id: id,
-            fecha: fechaFormateada,
-            descripcion: description,
-            usuario: usuario,
-          };
-
-          const publicacionJson = {
-            publicacion: datos,
-          };
-
-          listaDatos.push(publicacionJson);
+    fs.readFile("Posts.json", "utf8", (err, data) => {
+      if (err) {
+        console.error("Error al leer el archivo:", err);
+        return;
+      }
+      try {
+        // Parsea el contenido del archivo JSON a un objeto JavaScript
+        const listaThreads = JSON.parse(data);
+        listaThreads.forEach(function (thread, index) {
+          const threadNumber = index + 1;
+  
+          const threadItems = thread.threads;
+  
+          threadItems.forEach(function (item, itemIndex) {
+            const id = "" + item.thread_items[0].post.id.toString().split("_")[0];
+            const timestamp = item.thread_items[0].post.taken_at;
+            if (
+              item.thread_items[0].post.caption !== null &&
+              item.thread_items[0].post.caption.text !== null
+            ) {
+              description = item.thread_items[0].post.caption.text
+                .toString()
+                .trim()
+                .replace(/\s+/g, " ");
+            } else {
+              description = "Sin descripcion";
+            }
+            const usuario = item.thread_items[0].post.user.full_name;
+            console.log(timestamp);
+  
+            const fecha = new Date(timestamp * 1000);
+  
+            const dia = fecha.getDate();
+            const mes = fecha.getMonth() + 1;
+            const anio = fecha.getFullYear();
+  
+            const fechaFormateada = `${dia}/${mes}/${anio}`;
+  
+            const datos = {
+              id: id,
+              fecha: fechaFormateada,
+              descripcion: description,
+              usuario: usuario,
+            };
+  
+            const publicacionJson = {
+              publicacion: datos,
+            };
+  
+            listaDatos.push(publicacionJson);
+          });
         });
-      });
+  
+        const jsonPublicaciones = {
+          publicaciones: listaDatos,
+        };
+  
+        const datosJSON = JSON.stringify(jsonPublicaciones, null, 2);
+        fs.writeFileSync("publicaciones.json", datosJSON, { encoding: "utf8" });
+      } catch (err) {
+        console.error("Error al parsear el archivo JSON:", err);
+      }
+    });
+  }
+  catch(err){
+    console.error("Error al obtener las publicaciones:", error);
+  }
 
-      const jsonPublicaciones = {
-        publicaciones: listaDatos,
-      };
-
-      const datosJSON = JSON.stringify(jsonPublicaciones, null, 2);
-      fs.writeFileSync("publicaciones.json", datosJSON, { encoding: "utf8" });
-    } catch (err) {
-      console.error("Error al parsear el archivo JSON:", err);
-    }
-  });
 }
 
 // Función para generar un valor aleatorio entre min (incluido) y max (excluido)

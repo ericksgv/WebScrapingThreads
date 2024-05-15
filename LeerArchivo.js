@@ -39,6 +39,8 @@ fs.readFile("Posts.json", "utf8", (err, data) => {
         const mes = fecha.getMonth() + 1;
         const anio = fecha.getFullYear();
 
+        const fechaFormateada = `${dia}/${mes}/${anio}`;
+
         const datos = {
           id: id,
           fecha: fechaFormateada,
